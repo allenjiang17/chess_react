@@ -13,8 +13,12 @@ function App() {
   let [square_clicked, set_square_clicked] = useState([null, null]);
   let [piece_selected, set_piece_selected] = useState(null);
   let [legal_moveset, set_legal_moveset] = useState([]);
-  let [move_list, set_move_list] = useState([]);
 
+  //for display purposes
+  let [move_list, set_move_list] = useState([]);
+  let [pieces_taken, set_pieces_taken] = useState([]);
+
+  //Main function for determining what to do after user clicks a square
   useEffect(() => {
     let selected_piece = newBoard.pieces[`${square_clicked[0]},${square_clicked[1]}`];
 
@@ -29,10 +33,11 @@ function App() {
       if (piece_selected != null && findPosInArray(legal_moveset, square_clicked)){
 
         //record move
-        let new_move_list = JSON.parse(JSON.stringify(move_list));
         let capture = (newBoard.pieces[square_clicked] != undefined)
-        new_move_list.push(convertMoveToAlgNote(piece_selected, square_clicked, capture))
-        set_move_list(new_move_list);
+        set_move_list(current => [...current, convertMoveToAlgNote(piece_selected, square_clicked, capture)]);
+        if (capture) {
+          set_pieces_taken(current => [...current, newBoard.pieces[square_clicked]])
+        }
 
         //execute move
         newBoard.change_piece_position(piece_selected.position, square_clicked);
@@ -49,6 +54,7 @@ function App() {
   }, [square_clicked]);
 
 
+  //Sets square in state from user click
   function set_square(event) {
     //set current square
     let square_str = event.currentTarget.dataset.squareid;
@@ -74,6 +80,7 @@ function App() {
               </p>
             </div>
           <DisplayMoveList move_list = {move_list}/>
+          <DisplayPiecesTaken pieces_taken = {pieces_taken}/>
         </div>
       </div>
     </div>
@@ -88,11 +95,14 @@ function DisplayBoard(props) {
 
     for (let i=7;i>=0;i--) {
 
+      //generate black/white squares
       (square == "white") ? square = "black" : square = "white"
 
       let row = [];
 
       for (let j=0;j<8;j++) {
+
+        //generate black/white squares
         (square == "white") ? square = "black" : square = "white"
 
         const display_square = <DisplaySquare key={`${i},${j}`} 
@@ -125,6 +135,7 @@ function DisplaySquare(props) {
 
     props.highlight ? default_style.backgroundColor = "yellow" : default_style.backgroundColor = props.color == "white" ? "white" : "gray"
 
+    //only show highlighted moves (indicated with a yellow circle) if the square is part of the moveset
     let move_circle = null;
     if (props.move_square) {move_circle = <DisplayMoveCircle/>}
     return(
@@ -234,6 +245,42 @@ function DisplayMoveList(props) {
 
 }
 
+function DisplayPiecesTaken(props) {
+
+  var white_pieces = "";
+  var black_pieces = "";
+
+  for (let piece of props.pieces_taken) {
+    if (piece.color === "W") {
+      white_pieces = white_pieces + piece.unicode_rep;
+
+    } else {
+      black_pieces = black_pieces + piece.unicode_rep;
+    }
+  }
+
+  return(
+    <div>
+      <div>
+        Captured Pieces
+      </div>
+      <div className="flex justify-between items-center">
+        <div>
+          {white_pieces}
+        </div>
+        <div>
+          {black_pieces}
+        </div>
+      </div>
+
+    </div>
+
+
+  )
+  
+
+
+}
 //TODO: Implement disambiguation when there are multiple pieces of same type that can take the square
 function convertMoveToAlgNote(piece, end_pos, capture) {
   let num_to_letter = ["a", "b","c","d","e","f","g","h"]
