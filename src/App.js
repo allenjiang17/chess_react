@@ -1,7 +1,13 @@
-import logo from './logo.svg';
 import './App.css';
-import {Board, findPosInArray} from "./chess.js"
+import {Board, findPosInArray, findBestMove, evalBoard} from "./chess.js"
 import {useState, useEffect} from "react"
+
+import Toggle from 'react-toggle'
+import Popup from 'reactjs-popup';
+import 'reactjs-popup/dist/index.css';
+import "react-toggle/style.css" 
+
+
 let square_size = "2.8rem";
 let piece_size = "2.6rem";
 let half_square_size = "15px"; //df font size is 16px
@@ -18,7 +24,14 @@ function App() {
   let [move_list, set_move_list] = useState([]);
   let [pieces_taken, set_pieces_taken] = useState([]);
 
+  //ai
+  let [ai_on, set_ai_on] = useState(true)
+  let [ai_turn, set_ai_turn] = useState(false)
+  let [algo_depth, set_algo_depth] = useState(2)
+
+ 
   //Main function for determining what to do after user clicks a square
+  /*
   useEffect(() => {
     let selected_piece = newBoard.pieces[`${square_clicked[0]},${square_clicked[1]}`];
 
@@ -44,28 +57,128 @@ function App() {
 
         //check checkmate
         if (newBoard.is_checkmate()){window.alert("Checkmate");}
+
+        if (ai_on) {set_ai_turn(true);}
       }
 
       set_piece_selected(null);   
       set_legal_moveset([]);  
-
     }
 
   }, [square_clicked]);
+  */
 
+  //This causes the ai move algorithm to run after React renders the user's move first.
+  //However, we still need a "setTimeOut" to delay it so that React renders it first before executing the ai algorithm
+  useEffect(()=> {
+    
+     //if ai is on, move ai move
+    if (ai_on && ai_turn) {
+      ai_move(algo_depth);
+    }
+  },[ai_turn])
 
   //Sets square in state from user click
   function set_square(event) {
     //set current square
     let square_str = event.currentTarget.dataset.squareid;
-
     let square_nums = square_str.split(",").map(Number);
     set_square_clicked(square_nums);
+
+    let selected_piece = newBoard.pieces[`${square_nums[0]},${square_nums[1]}`];
+
+    //if a valid movable piece is selected, show moveset
+    if (selected_piece?.color == newBoard.turn) {
+      set_legal_moveset(newBoard.generate_moveset_with_check_test(selected_piece));
+      set_piece_selected(selected_piece);
+
+    } else {
+
+      //if not, check if square is a possible movement square for an already selected piece
+      if (piece_selected != null && findPosInArray(legal_moveset, square_nums)){
+
+        //record move
+        let capture = (newBoard.pieces[square_nums] != undefined)
+        set_move_list(current => [...current, convertMoveToAlgNote(piece_selected, square_nums, capture)]);
+        if (capture) {
+          set_pieces_taken(current => [...current, newBoard.pieces[square_nums]])
+        }
+
+        //execute move
+        newBoard.change_piece_position(piece_selected.position, square_nums);
+
+        //check checkmate
+        if (newBoard.is_checkmate()){window.alert("Checkmate");}
+
+        if (ai_on) {set_ai_turn(true);}
+      }
+
+      set_piece_selected(null);   
+      set_legal_moveset([]);  
+    }
+  }
+
+  function ai_move(algo_depth) {
+
+    /*since findBestMove is a computationally intensive move, setTimeOut allows there to be a tiny delay 
+    so that React can render so far without waiting on it*/
+
+    setTimeout(()=>{    
+      let ai_move = findBestMove(newBoard, algo_depth)
+      let selected_piece = newBoard.pieces[ai_move[0]]
+  
+      //record move
+      let capture = (newBoard.pieces[ai_move[1]] != undefined)
+      set_move_list(current => [...current, convertMoveToAlgNote(selected_piece, ai_move[1], capture)]);
+      if (capture) {
+        set_pieces_taken(current => [...current, newBoard.pieces[ai_move[1]]])
+      }
+  
+      //execute move
+      newBoard.change_piece_position(ai_move[0], ai_move[1]);
+  
+      //check checkmate
+      if (newBoard.is_checkmate()){window.alert("Checkmate");}
+    }, 0)
+
+    set_ai_turn(false);        
+  }
+
+  function handle_ai_toggle() {
+    ai_on ? set_ai_on(false) : set_ai_on(true)
+  }
+
+  function handle_depth_select(event) {
+    set_algo_depth(event.target.value);
   }
 
   return(
     <div>
-      <div className="text-xl font-bold m-2">chess</div>
+      <div className="flex justify-between items-baseline">
+        <div className="text-3xl font-bold m-2">chess</div>
+        <div id="calculating" className="text-md m-2 text-slate-500"></div>
+        <Popup trigger={<button className="text-xs pl-2 pr-2 pt-1 pb-1 bg-slate-200 hover:bg-slate-300 text-slate-800 rounded">Settings</button>} modal>
+          <div className="p-3">
+            <p className="text-lg font-bold mb-3">Settings</p>
+            <div className="flex items-top mb-2">
+              <label className="mr-3">Computer AI On</label>
+              <Toggle defaultChecked={ai_on} onChange={handle_ai_toggle}/>
+            </div>
+            <div>
+              <label className="mr-3"> Search Depth</label>
+              <select onChange={handle_depth_select} id="depth_select" name="depth_select" className="bg-slate-200 rounded p-1 text-sm" defaultValue={algo_depth}>
+                <option value={1}>Depth = 1</option>
+                <option value={2}>Depth = 2</option>
+                <option value={3}>Depth = 3</option>
+                <option value={4}>Depth = 4</option>
+              </select>
+              <br></br>
+              <span className="text-xs">Note: Depth at 4 is slow</span>
+            </div>
+            <div className="text-xs text-right">Code on github @ <a href="https://github.com/allenjiang17/chess_react">allenjiang17.github.io/chess_react</a></div>
+          </div>
+        </Popup>
+      </div>
       <div className="min-w-max mx-auto md:flex">
         <DisplayBoard pieces = {newBoard.pieces} 
         click_handler={set_square} 
@@ -220,7 +333,7 @@ function DisplayMoveList(props) {
   }
 
   for (let i=0; i<move_list.length; i+=2) {
-    let curr_row = (<tr key={"Row" + String(i/2+1)} className="text-sm mt-2 w-full flex justify-left items-center font-normal hover:bg-gray-200 dark:hover:bg-gray-600">
+    let curr_row = (<tr key={"Row" + String(i/2+1)} className="text-sm mt-2 pl-2 w-full flex justify-left items-center font-normal hover:bg-slate-200 dark:hover:bg-gray-400">
       <td className="w-6">{String(i/2+1) + "."}</td>
       <td className="w-8">{move_list[i]}</td>
       <td className="w-8">{move_list[i+1]}</td>
@@ -232,7 +345,7 @@ function DisplayMoveList(props) {
   }
   
   return(
-    <div className="bg-gray-100 pl-2 overflow-auto h-[40vh] border border-gray-300 dark:bg-gray-800">
+    <div className="bg-slate-100 overflow-auto h-[40vh] border border-gray-300 dark:bg-gray-800">
     <table className="w-full">
       <tbody>
         {table}

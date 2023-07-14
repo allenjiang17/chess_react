@@ -297,12 +297,12 @@ export class Board {
 
         if (piece.color === "W") {
           if (findPosInArray(this.generate_moveset(piece), this.b_king_location)) {
-            console.log("Black King in check");
+            //console.log("Black King in check");
             this.b_king_check = true;
           } 
         } else {
           if (findPosInArray(this.generate_moveset(piece), this.w_king_location)) {
-            console.log("White King in check");
+            //console.log("White King in check");
             this.w_king_check = true;
           } 
         }
@@ -335,11 +335,9 @@ export class Board {
       let remove_moves = [];
     
       for (let move of moveset) {
-        console.log("h:" + move)
-
         //TODO: make this more specifc, only remove if piece causes its own king to be checked
         if (!this.move_check(piece.position, move)) {
-          console.log(move, "removed");
+          //console.log(move, "removed");
           remove_moves.push(move);
         }
       }
@@ -356,7 +354,7 @@ export class Board {
         let white_pieces = Object.values(this.pieces).filter(piece => piece.color == "W");
         for (let piece of white_pieces) {
           if (this.generate_moveset_with_check_test(piece).length != 0) {
-            console.log("Piece has move, no checkmate")
+            //console.log("Piece has move, no checkmate")
             return false;
           }
         }
@@ -368,7 +366,7 @@ export class Board {
         let black_pieces = Object.values(this.pieces).filter(piece => piece.color == "B");
         for (let piece of black_pieces) {
           if (this.generate_moveset_with_check_test(piece).length != 0) {
-            console.log("Piece has move, no checkmate")
+            //console.log("Piece has move, no checkmate")
             return false;
           }
         }
@@ -395,8 +393,6 @@ export class Board {
 
         for (let black_piece of Object.values(this.pieces).filter(piece => piece.color === "B")) {
 
-          console.log(black_piece);
-          console.log(black_piece.naive_moves);
           let black_piece_moveset = this.generate_moveset(black_piece);
 
           //kingside castle
@@ -921,7 +917,134 @@ export function findPosInArray(my_array, pos) {
 
 }
 
-      
-      
+//Basic MinMax Algorithm, 2 levels deep
+
+export function findBestMove(board, max_depth=4) {
+
+  let alpha = -9999
+  let beta = 9999
+
+  let best = minMaxAlgo(board, max_depth, true, board.turn, board.turn, alpha, beta);
+  let bestScore = best[0]
+  let bestMove = best[1]
+
+  //return last added move 
+  return bestMove
+}
+
+function minMaxAlgo(board, depth, isMaxPlayer, turn_color, MaxPlayerColor, alpha, beta)  {
+
+  //console.log("starting algorithm at depth" + depth + " alpha=" + alpha + " beta=" + beta)
+
+  let bestScore;
+  let bestMove;
+  let next_turn_color;
+
+  isMaxPlayer ? bestScore = -9999 : bestScore = 9999;
+  turn_color == "W" ? next_turn_color = "B" : next_turn_color = "W";
+
+  if (depth == 0) {
+    let leaf_score = evalBoard(board, MaxPlayerColor)
+    //console.log("Leaf:" + " isMaxPlayer" + isMaxPlayer + " Turncolor:" + turn_color + " Score:" + leaf_score)
+    return [leaf_score, []]
+    
+  }
+
+  //console.log("PLAYER: " + turn_color + "isMAXPLAYER? :" + isMaxPlayer + "-==========================")
+  for (let piece of Object.values(board.pieces).reverse()) { //reverse makes alpha-beta pruning more effective, as it searches the pieces that have been recently moved first
+
+    if (turn_color == piece.color) {
+
+      //console.log(piece)
+
+      let moves = board.generate_moveset_with_check_test(piece);
+
+      for (let move of moves) {
+
+        //console.log("NEXT MOVE: " + move + "  ================")
+
+        let temp_board = cloneDeep(board);
+
+        temp_board.change_piece_position(piece.position, move);
+        let result = minMaxAlgo(temp_board, depth-1, !isMaxPlayer, next_turn_color, MaxPlayerColor, alpha, beta);
+        let score = result[0]
+
+        if (isMaxPlayer) {
+          //maximize score
+          if (bestScore < score) {
+            //console.log("new best score for" + isMaxPlayer + score)
+            bestScore = score;
+            alpha = Math.max(alpha, bestScore)
+            if (beta <= alpha) {
+              break
+            }
+            //console.log("new best move" + move)
+            bestMove = [piece.position, move]
+          }
+        } else {
+          //minimize score
+          if (bestScore > score) {
+            //console.log("new best score for" + isMaxPlayer + score)
+            bestScore = score;
+
+            beta = Math.min(beta, bestScore)
+            if (beta <= alpha) {
+              break
+            }
+            //console.log("new best move" + move)
+            bestMove = [piece.position, move]
+          }
+        }
+      }
+      if (beta <= alpha) {
+        break
+      }
+    }
+  }
+
+  //console.log("Best Score for " + isMaxPlayer + "at depth" + depth + " :" + bestScore)
+  return [bestScore, bestMove]
+}
+
+//Eval Board, based on heuristics
+export function evalBoard(board, color) {
+  let score = 0
+
+  //Piece Values
+  for (let piece of Object.values(board.pieces)) {
+
+    if (piece.color === color){
+
+      score += (10 - (Math.abs(4 - piece.position[0]) + Math.abs(4 - piece.position[1])))*0.3 //rewards central positions
+
+      //piece values
+      piece.name == "Rook" ? score += 50 : score += 0;
+      (piece.name == "Bishop" || piece.name == "Knight") ? score += 30 : score += 0;
+      piece.name == "Queen" ? score += 80 : score += 0;
+      piece.name == "Pawn" ? score += 10 : score += 0;
+      piece.name == "King" ? score += 1000: score += 0;
+
+
+
+    } else {
+      score -= (10 - (Math.abs(4 - piece.position[0]) + Math.abs(4 - piece.position[1])))*0.3 //rewards central positions
+
+      piece.name == "Rook" ? score -= 50 : score += 0;
+      (piece.name == "Bishop" || piece.name == "Knight") ? score -= 30 : score += 0;
+      piece.name == "Queen" ? score -= 80 : score += 0;
+      piece.name == "Pawn" ? score -= 10 : score += 0;
+      piece.name == "King" ? score -= 1000: score += 0;  
+    }
+  }
+
+  
+
+
+
+
+  return score
+
+}
+
 
 
