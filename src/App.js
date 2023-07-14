@@ -418,7 +418,15 @@ function convertMoveToAlgNote(piece, end_pos, capture) {
   } else if (piece.name == "Queen") {
     return "Q" + x + String(file) + String(rank);
   } else if (piece.name == "King") {
-    return "K" + x + String(file) + String(rank);
+
+    //special notation for castling
+    if (piece.position[1] == 4 && end_pos[1] == 2) {
+      return "O-O-O"
+    } else if (piece.position[1] == 4 && end_pos[1] == 6) {
+      return "O-O"
+    } else {
+      return "K" + x + String(file) + String(rank);
+    }
     
   } else {
     //pawn
