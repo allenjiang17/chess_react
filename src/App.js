@@ -178,9 +178,9 @@ function App() {
                 <option value={4}>Depth = 4</option>
               </select>
               <br></br>
-              <span className="text-xs">Note: Depth at 4 is slow</span>
+              <span className="text-xs text-red-400">Note: Depth at 4 is slow</span>
             </div>
-            <div className="text-xs text-right">Code on github @ <a href="https://github.com/allenjiang17/chess_react">allenjiang17.github.io/chess_react</a></div>
+            <div className="text-xs text-right">Code: <a className="hover:text-gray-600" href="https://github.com/allenjiang17/chess_react">allenjiang17.github.io/chess_react</a></div>
           </div>
         </Popup>
       </div>
@@ -382,10 +382,10 @@ function DisplayPiecesTaken(props) {
   return(
     <div>
       <div className="flex justify-between items-center">
-        <div>
+        <div className="text-xl">
           {white_pieces}
         </div>
-        <div>
+        <div className="text-xl">
           {black_pieces}
         </div>
       </div>
