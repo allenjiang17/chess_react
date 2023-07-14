@@ -1037,11 +1037,6 @@ export function evalBoard(board, color) {
     }
   }
 
-  
-
-
-
-
   return score
 
 }

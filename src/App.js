@@ -85,12 +85,12 @@ function App() {
     let square_nums = square_str.split(",").map(Number);
     set_square_clicked(square_nums);
 
-    let selected_piece = newBoard.pieces[`${square_nums[0]},${square_nums[1]}`];
+    let selected_square = newBoard.pieces[`${square_nums[0]},${square_nums[1]}`];
 
     //if a valid movable piece is selected, show moveset
-    if (selected_piece?.color == newBoard.turn) {
-      set_legal_moveset(newBoard.generate_moveset_with_check_test(selected_piece));
-      set_piece_selected(selected_piece);
+    if (selected_square?.color == newBoard.turn) {
+      set_legal_moveset(newBoard.generate_moveset_with_check_test(selected_square));
+      set_piece_selected(selected_square);
 
     } else {
 
@@ -98,10 +98,11 @@ function App() {
       if (piece_selected != null && findPosInArray(legal_moveset, square_nums)){
 
         //record move
-        let capture = (newBoard.pieces[square_nums] != undefined)
-        set_move_list(current => [...current, convertMoveToAlgNote(piece_selected, square_nums, capture)]);
+        let capture = (selected_square != undefined);
+        let new_record_move = convertMoveToAlgNote(piece_selected, square_nums, capture);
+        set_move_list(current => [...current, new_record_move]);
         if (capture) {
-          set_pieces_taken(current => [...current, newBoard.pieces[square_nums]])
+          set_pieces_taken(current => [...current, selected_square])
         }
 
         //execute move
@@ -125,13 +126,16 @@ function App() {
 
     setTimeout(()=>{    
       let ai_move = findBestMove(newBoard, algo_depth)
-      let selected_piece = newBoard.pieces[ai_move[0]]
-  
+      
+      let start_piece = newBoard.pieces[`${ai_move[0][0]},${ai_move[0][1]}`];
+      let end_piece = newBoard.pieces[`${ai_move[1][0]},${ai_move[1][1]}`];
+
       //record move
-      let capture = (newBoard.pieces[ai_move[1]] != undefined)
-      set_move_list(current => [...current, convertMoveToAlgNote(selected_piece, ai_move[1], capture)]);
+      let capture = (end_piece != undefined)
+      let new_record_move = convertMoveToAlgNote(start_piece, ai_move[1], capture)
+      set_move_list(current => [...current, new_record_move]);
       if (capture) {
-        set_pieces_taken(current => [...current, newBoard.pieces[ai_move[1]]])
+        set_pieces_taken(current => [...current, end_piece])
       }
   
       //execute move
@@ -396,6 +400,7 @@ function DisplayPiecesTaken(props) {
 }
 //TODO: Implement disambiguation when there are multiple pieces of same type that can take the square
 function convertMoveToAlgNote(piece, end_pos, capture) {
+
   let num_to_letter = ["a", "b","c","d","e","f","g","h"]
 
   let file = num_to_letter[end_pos[1]];
