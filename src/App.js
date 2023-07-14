@@ -74,7 +74,7 @@ function App() {
     
      //if ai is on, move ai move
     if (ai_on && ai_turn) {
-      ai_move(algo_depth);
+      make_ai_move(algo_depth);
     }
   },[ai_turn])
 
@@ -119,7 +119,7 @@ function App() {
     }
   }
 
-  function ai_move(algo_depth) {
+  function make_ai_move(algo_depth) {
 
     /*since findBestMove is a computationally intensive move, setTimeOut allows there to be a tiny delay 
     so that React can render so far without waiting on it*/
@@ -143,9 +143,10 @@ function App() {
   
       //check checkmate
       if (newBoard.is_checkmate()){window.alert("Checkmate");}
-    }, 0)
 
-    set_ai_turn(false);        
+      set_ai_turn(false); 
+      set_square_clicked(ai_move[1]);    
+    }, 0)
   }
 
   function handle_ai_toggle() {
@@ -184,11 +185,14 @@ function App() {
         </Popup>
       </div>
       <div className="min-w-max mx-auto md:flex">
-        <DisplayBoard pieces = {newBoard.pieces} 
-        click_handler={set_square} 
-        current_square={square_clicked}
-        move_squares={legal_moveset}
-        />
+        <div>
+          <DisplayBoard pieces = {newBoard.pieces} 
+          click_handler={set_square} 
+          current_square={square_clicked}
+          move_squares={legal_moveset}
+          />
+          <DisplayPiecesTaken pieces_taken = {pieces_taken}/>
+        </div>
         <div className="p-1 text-md w-full md:w-48 mt-2 md:ml-2 md:mt-0">
             <div className="flex justify-between items-baseline mb-1">
               <p>Moves</p>
@@ -197,7 +201,6 @@ function App() {
               </p>
             </div>
           <DisplayMoveList move_list = {move_list}/>
-          <DisplayPiecesTaken pieces_taken = {pieces_taken}/>
         </div>
       </div>
     </div>
@@ -339,8 +342,8 @@ function DisplayMoveList(props) {
   for (let i=0; i<move_list.length; i+=2) {
     let curr_row = (<tr key={"Row" + String(i/2+1)} className="text-sm mt-2 pl-2 w-full flex justify-left items-center font-normal hover:bg-slate-200 dark:hover:bg-gray-400">
       <td className="w-6">{String(i/2+1) + "."}</td>
-      <td className="w-8">{move_list[i]}</td>
-      <td className="w-8">{move_list[i+1]}</td>
+      <td className="w-10">{move_list[i]}</td>
+      <td className="w-10">{move_list[i+1]}</td>
       </tr>)
 
     table.push(curr_row);
@@ -349,7 +352,7 @@ function DisplayMoveList(props) {
   }
   
   return(
-    <div className="bg-slate-100 overflow-auto h-[40vh] border border-gray-300 dark:bg-gray-800">
+    <div className="bg-slate-100 overflow-auto h-[20rem] border border-gray-300 dark:bg-gray-800">
     <table className="w-full">
       <tbody>
         {table}
@@ -378,9 +381,6 @@ function DisplayPiecesTaken(props) {
 
   return(
     <div>
-      <div>
-        Captured Pieces
-      </div>
       <div className="flex justify-between items-center">
         <div>
           {white_pieces}

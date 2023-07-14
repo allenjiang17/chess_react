@@ -1024,8 +1024,6 @@ export function evalBoard(board, color) {
       piece.name == "Pawn" ? score += 10 : score += 0;
       piece.name == "King" ? score += 1000: score += 0;
 
-
-
     } else {
       score -= (10 - (Math.abs(4 - piece.position[0]) + Math.abs(4 - piece.position[1])))*0.3 //rewards central positions
 
